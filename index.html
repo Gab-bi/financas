@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finanças — Entrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #F7F5F0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1A1714;
+}
+.card {
+  background: #fff;
+  border: 1px solid #E2DDD6;
+  border-radius: 16px;
+  padding: 40px 44px;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.07);
+}
+.logo { font-family: 'DM Serif Display', serif; font-size: 28px; letter-spacing: -0.5px; margin-bottom: 4px; }
+.logo-sub { font-size: 12px; color: #9C9690; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 32px; }
+.tabs { display: flex; gap: 0; margin-bottom: 28px; border-bottom: 2px solid #E2DDD6; }
+.tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; color: #9C9690; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+.tab.active { color: #2D5016; border-bottom-color: #2D5016; }
+.form-group { margin-bottom: 16px; }
+label { display: block; font-size: 11px; font-weight: 600; color: #9C9690; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 5px; }
+input { width: 100%; padding: 11px 14px; border: 1px solid #E2DDD6; border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: #1A1714; background: #F7F5F0; transition: border-color .15s; }
+input:focus { outline: none; border-color: #2D5016; background: #fff; }
+.btn { width: 100%; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; background: #2D5016; color: #fff; margin-top: 4px; transition: opacity .15s; }
+.btn:hover { opacity: .88; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.msg { font-size: 13px; margin-top: 14px; padding: 10px 14px; border-radius: 8px; text-align: center; display: none; }
+.msg.error { background: #FDECEA; color: #C0392B; display: block; }
+.msg.success { background: #E8F5E9; color: #1E7E34; display: block; }
+.divider { text-align: center; font-size: 12px; color: #9C9690; margin: 18px 0 0; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Finanças</div>
+  <div class="logo-sub">Controle pessoal</div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('login')" id="tab-login">Entrar</div>
+    <div class="tab" onclick="switchTab('register')" id="tab-register">Criar conta</div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="form-login">
+    <div class="form-group"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email"></div>
+    <div class="form-group"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn" onclick="doLogin()" id="btn-login">Entrar</button>
+    <div class="msg" id="login-msg"></div>
+    <div class="divider" style="margin-top:16px"><a href="#" onclick="showForgot()" style="color:#2D5016;text-decoration:none;font-size:13px">Esqueci minha senha</a></div>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="form-register" style="display:none">
+    <div class="form-group"><label>Nome</label><input type="text" id="reg-name" placeholder="Seu nome" autocomplete="name"></div>
+    <div class="form-group"><label>E-mail</label><input type="email" id="reg-email" placeholder="seu@email.com" autocomplete="email"></div>
+    <div class="form-group"><label>Senha</label><input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+    <div class="form-group"><label>Confirmar senha</label><input type="password" id="reg-pass2" placeholder="Repita a senha" autocomplete="new-password"></div>
+    <button class="btn" onclick="doRegister()" id="btn-register">Criar conta</button>
+    <div class="msg" id="register-msg"></div>
+  </div>
+
+  <!-- FORGOT -->
+  <div id="form-forgot" style="display:none">
+    <p style="font-size:13px;color:#6B6560;margin-bottom:16px">Informe seu e-mail e enviaremos um link para redefinir sua senha.</p>
+    <div class="form-group"><label>E-mail</label><input type="email" id="forgot-email" placeholder="seu@email.com"></div>
+    <button class="btn" onclick="doForgot()" id="btn-forgot">Enviar link</button>
+    <div class="msg" id="forgot-msg"></div>
+    <div class="divider"><a href="#" onclick="switchTab('login')" style="color:#2D5016;text-decoration:none;font-size:13px">← Voltar ao login</a></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG — substitua pelos seus dados do Supabase ──
+const SUPABASE_URL = 'https://pejbjnfyomipbxjpxyhe.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBlamJqbmZ5b21pcGJ4anB4eWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NjM1ODQsImV4cCI6MjA5NjMzOTU4NH0.b873yw5KuSWBGxEF8Pbzvx4SeS4IM4yGmOt2JSQEKhs';
+// ─────────────────────────────────────────────────────
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Redireciona se já logado
+sb.auth.getSession().then(({ data }) => {
+  if (data.session) window.location.href = 'app.html';
+});
+
+function switchTab(t) {
+  ['login','register'].forEach(id => {
+    document.getElementById('tab-'+id).classList.toggle('active', id===t);
+    document.getElementById('form-'+id).style.display = id===t ? 'block' : 'none';
+  });
+  document.getElementById('form-forgot').style.display = 'none';
+}
+
+function showForgot() {
+  document.getElementById('form-login').style.display = 'none';
+  document.getElementById('form-forgot').style.display = 'block';
+  document.getElementById('tab-login').classList.remove('active');
+}
+
+function showMsg(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'msg ' + type;
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { showMsg('login-msg','Preencha e-mail e senha.','error'); return; }
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { showMsg('login-msg', error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message, 'error'); btn.disabled=false; btn.textContent='Entrar'; }
+  else window.location.href = 'app.html';
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  if (!name || !email || !pass) { showMsg('register-msg','Preencha todos os campos.','error'); return; }
+  if (pass.length < 6) { showMsg('register-msg','Senha deve ter pelo menos 6 caracteres.','error'); return; }
+  if (pass !== pass2) { showMsg('register-msg','As senhas não coincidem.','error'); return; }
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true; btn.textContent = 'Criando conta…';
+  const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { name } } });
+  if (error) { showMsg('register-msg', error.message, 'error'); btn.disabled=false; btn.textContent='Criar conta'; }
+  else showMsg('register-msg','Conta criada! Verifique seu e-mail para confirmar.','success');
+}
+
+async function doForgot() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) { showMsg('forgot-msg','Informe seu e-mail.','error'); return; }
+  const btn = document.getElementById('btn-forgot');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/app.html' });
+  if (error) { showMsg('forgot-msg', error.message, 'error'); btn.disabled=false; btn.textContent='Enviar link'; }
+  else showMsg('forgot-msg','Link enviado! Verifique seu e-mail.','success');
+}
+
+// Enter key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('form-login').style.display !== 'none') doLogin();
+    else if (document.getElementById('form-register').style.display !== 'none') doRegister();
+  }
+});
+</script>
+</body>
+</html>
